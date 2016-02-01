@@ -8,8 +8,9 @@ Example configuration for Django settings:
 port is optional. If none is given, the port specified in redis.conf will be used.
 
 """
+import sys
 import base64
-from base import BaseStorage, InvalidKeyValueStoreBackendError
+from .base import BaseStorage, InvalidKeyValueStoreBackendError
 from django.utils.encoding import smart_unicode, smart_str
 
 try:
@@ -17,10 +18,13 @@ try:
 except ImportError:
     raise InvalidKeyValueStoreBackendError("The Redis key-value store backend requires the Redis python client.")
 
-try:
-    import cPickle as pickle
-except ImportError:
+if sys.version > '3':
     import pickle
+else:
+    try:
+        import cPickle as pickle
+    except ImportError:
+        import pickle
 
 class StorageClass(BaseStorage):
 

@@ -23,4 +23,4 @@ class BaseStorage(object):
 
     def __contains__(self, key):
         """Returns true if the key is in the store."""
-        return self.has_key(key)
+        return key in self

@@ -12,7 +12,11 @@ __author__ = 'Six Apart Ltd.'
 __credits__ = """Mike Malone
 Brad Choate"""
 
-from cgi import parse_qsl
+import sys
+if sys.version > '3':
+    from urllib.parse import parse_qsl
+else:
+    from cgi import parse_qsl
 from django.conf import settings
 from django.core import signals
 
@@ -29,7 +33,10 @@ BACKENDS = {
     'redis': 'redisdj',
 }
 
-class InvalidKeyValueStoreBackend(Exception): pass
+
+class InvalidKeyValueStoreBackend(Exception):
+    pass
+
 
 def get_kvstore(backend_uri):
     if backend_uri.find(':') == -1:
@@ -41,7 +48,7 @@ def get_kvstore(backend_uri):
     host = rest[2:]
     qpos = rest.find('?')
     if qpos != -1:
-        params = dict(parse_qsl(rest[qpos+1:]))
+        params = dict(parse_qsl(rest[qpos + 1:]))
         host = rest[2:qpos]
     else:
         params = {}
@@ -54,8 +61,8 @@ def get_kvstore(backend_uri):
         module = __import__(scheme, {}, {}, [''])
     return getattr(module, 'StorageClass')(host, params)
 
+# A handle to the configured key-value store.
 kvstore = get_kvstore(settings.KEY_VALUE_STORE_BACKEND)
-"""A handle to the configured key-value store."""
 
 # Some kv store backends need to do a cleanup at the end of
 # a request cycle. If the cache provides a close() method, wire

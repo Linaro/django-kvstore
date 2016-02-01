@@ -1,9 +1,12 @@
-from django_kvstore import kvstore
+import sys
+from django_kvstore import get_kvstore
+from django.conf import settings
 
-
-class FieldError(Exception): pass
+class FieldError(Exception):
+    pass
 
 KV_PREFIX = '__KV_STORE_::'
+
 
 def generate_key(cls, pk):
     return str('%s%s.%s:%s' % (KV_PREFIX, cls.__module__, cls.__name__, pk))
@@ -20,7 +23,7 @@ class Field(object):
     def decode(self, value):
         """Decodes an object from the datastore into a python object."""
         return value
-    
+
     def encode(self, value):
         """Encodes an object into a value suitable for the backend datastore."""
         return value
@@ -28,7 +31,7 @@ class Field(object):
 
 class ModelMetaclass(type):
     """
-    Metaclass for `kvstore.models.Model` instances. Installs 
+    Metaclass for `kvstore.models.Model` instances. Installs
     `kvstore.models.Field` and `kvstore.models.Key` instances
     declared as attributes of the new class.
 
@@ -43,7 +46,7 @@ class ModelMetaclass(type):
 
         new_fields = {}
         # Move all the class's attributes that are Fields to the fields set.
-        for attrname, field in attrs.items():
+        for attrname, field in list(attrs.items()):
             if isinstance(field, Field):
                 new_fields[attrname] = field
                 if field.pk:
@@ -60,7 +63,7 @@ class ModelMetaclass(type):
         attrs['fields'] = fields
         new_cls = super(ModelMetaclass, cls).__new__(cls, name, bases, attrs)
 
-        for field, value in new_fields.items():
+        for field, value in list(new_fields.items()):
             new_cls.add_to_class(field, value)
 
         return new_cls
@@ -75,6 +78,7 @@ class ModelMetaclass(type):
 class Model(object):
 
     __metaclass__ = ModelMetaclass
+    kvstore = get_kvstore(settings.KEY_VALUE_STORE_BACKEND)
 
     def __init__(self, **kwargs):
         for name, value in kwargs.items():
@@ -88,10 +92,10 @@ class Model(object):
 
     def save(self):
         d = self.to_dict()
-        kvstore.set(generate_key(self.__class__, self._get_pk_value()), d)
+        self.kvstore.set(generate_key(self.__class__, self._get_pk_value()), d)
 
     def delete(self):
-        kvstore.delete(generate_key(self.__class__, self._get_pk_value()))
+        self.kvstore.delete(generate_key(self.__class__, self._get_pk_value()))
 
     def _get_pk_value(self):
         return getattr(self, self.key_field)
@@ -102,9 +106,10 @@ class Model(object):
             # Keys can't be unicode to work as **kwargs. Must delete and re-add
             # otherwise the dict won't change the type of the key.
             if name in cls.fields:
-                if isinstance(name, unicode):
-                    del fields[name]
-                    name = name.encode('utf-8')
+                if sys.version_info < 3:
+                    if isinstance(name, unicode):
+                        del fields[name]
+                        name = name.encode('utf-8')
                 fields[name] = cls.fields[name].decode(value)
             else:
                 del fields[name]
@@ -112,8 +117,7 @@ class Model(object):
 
     @classmethod
     def get(cls, id):
-        fields = kvstore.get(generate_key(cls, id))
+        fields = cls.kvstore.get(generate_key(cls, id))
         if fields is None:
             return None
         return cls.from_dict(fields)
-

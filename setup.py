@@ -39,7 +39,7 @@ except Exception:
 
 setup(
     name='django-kvstore',
-    version='1.0',
+    version='1.1',
     description='An extensible key-value store backend for Django applications.',
     author='Six Apart Ltd.',
     author_email='python@sixapart.com',

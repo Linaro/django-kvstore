@@ -9,12 +9,16 @@ Example configuration for Django settings:
 
 """
 
-try:
-    import cPickle as pickle
-except ImportError:
+import sys
+if sys.version > '3':
     import pickle
+else:
+    try:
+        import cPickle as pickle
+    except ImportError:
+        import pickle
 
-from base import BaseStorage
+from .base import BaseStorage
 from django.utils.synch import RWLock
 
 class StorageClass(BaseStorage):

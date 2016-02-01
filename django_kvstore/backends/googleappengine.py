@@ -8,11 +8,15 @@ Example configuration for Django settings:
 """
 
 import base64
-from base import BaseStorage, InvalidKeyValueStoreBackendError
-try:
-    import cPickle as pickle
-except ImportError:
+from .base import BaseStorage, InvalidKeyValueStoreBackendError
+import sys
+if sys.version > '3':
     import pickle
+else:
+    try:
+        import cPickle as pickle
+    except ImportError:
+        import pickle
 
 try:
     from google.appengine.ext import db
